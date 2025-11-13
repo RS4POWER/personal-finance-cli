@@ -60,3 +60,31 @@ func (r *TransactionRepo) SearchByText(text string) ([]domain.Transaction, error
 	}
 	return result, rows.Err()
 }
+
+func (r *TransactionRepo) Totals() (income, expense float64, err error) {
+	rows, err := r.db.Query(`
+        SELECT type, SUM(amount)
+        FROM transactions
+        GROUP BY type`)
+	if err != nil {
+		return 0, 0, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var t string
+		var sum float64
+
+		if err := rows.Scan(&t, &sum); err != nil {
+			return 0, 0, err
+		}
+
+		if t == string(domain.TransactionTypeIncome) {
+			income = sum
+		} else if t == string(domain.TransactionTypeExpense) {
+			expense = sum
+		}
+	}
+
+	return income, expense, rows.Err()
+}
