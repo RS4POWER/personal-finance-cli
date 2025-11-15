@@ -67,26 +67,27 @@ pfcli report
 
 The project uses a layered architecture with clear separation between CLI, services, repositories, database access and domain models.
 
+
 ```mermaid
 graph TD
-    User[User / Terminal] -->|CLI commands: add, search, report, import, budget, tui| CLI[Cobra CLI (cmd/pfcli + internal/cli)]
-    CLI --> Services[Service Layer (internal/service)]
-    Services --> Repo[Repository Layer (internal/repo)]
-    Repo --> DB[Database Layer - SQLite (internal/db)]
-    DB --> Repo
-    Services --> Domain[Domain Models (internal/domain)]
-    Repo --> Domain
+    User[Terminal / User] -->|CLI commands: add, search, report, import, budget, tui| CLI[Cobra CLI - cmd/pfcli]
 
-    %% Future service responsibilities
-    Services --> ImportService[Import Service (CSV/OFX)]
-    Services --> Categorization[Categorization (regex rules)]
-    Services --> BudgetManager[Budget Manager & Alerts]
-    Services --> ReportGen[Advanced Reports & Charts]
-    Services --> TUIBackend[TUI Backend Logic]
+    CLI --> Services[Service Layer - internal/service]
+    Services --> Repo[Repository Layer - internal/repo]
+    Repo --> DB[Database Layer - SQLite]
 
+    Services --> Domain[Domain Models - internal/domain]
+
+    %% Future service components
+    Services --> ImportService[Import Service - CSV OFX Parser]
+    Services --> Categorization[Transaction Categorization - Regex Rules]
+    Services --> BudgetManager[Budget Manager - Alerts]
+    Services --> ReportGen[Reports Generator - Charts / Summaries]
+    Services --> TUIBackend[TUI Backend - Interactive CLI]
 ```
 ## Project Structure
 
+```text
 personal-finance-cli/
 ├── cmd/
 │   └── pfcli/
@@ -100,7 +101,7 @@ personal-finance-cli/
 │
 └── docs/
     └── architecture.md        # Detailed architecture description
-
+```
 
 ## 🏛️ Architecture Overview
 
