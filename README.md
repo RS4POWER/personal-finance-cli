@@ -37,36 +37,43 @@ The main CLI entrypoint is `pfcli`.
 | `pfcli budget`                            | Stub: will manage budgets and alerts per category |
 | `pfcli tui`                               | Stub: will start an interactive terminal UI |
 
-### Examples
+---
 
-➕ Add a transaction
 
+## Examples
+
+### ➕ Add a transaction
+
+```bash
 pfcli add --amount 25.5 --description "Pizza" --category "Food" --type expense
+```
+```bash
 pfcli add --amount 5000 --description "Salary November" --category "Income" --type income
+```
 
-🔍 Search transactions
 
+### 🔍 Search transactions
+
+```bash
 pfcli search --text Pizza
+```
+### 📊 Generate financial report
 
-📊 Generate financial report
-
+```bash
 pfcli report
-
+```
 
 ## System Architecture
 
 The project uses a layered architecture with clear separation between CLI, services, repositories, database access and domain models.
 
- ```mermaid
-
+```mermaid
 graph TD
     User[User / Terminal] -->|CLI commands: add, search, report, import, budget, tui| CLI[Cobra CLI (cmd/pfcli + internal/cli)]
-
     CLI --> Services[Service Layer (internal/service)]
     Services --> Repo[Repository Layer (internal/repo)]
     Repo --> DB[Database Layer - SQLite (internal/db)]
     DB --> Repo
-
     Services --> Domain[Domain Models (internal/domain)]
     Repo --> Domain
 
@@ -76,6 +83,7 @@ graph TD
     Services --> BudgetManager[Budget Manager & Alerts]
     Services --> ReportGen[Advanced Reports & Charts]
     Services --> TUIBackend[TUI Backend Logic]
+
 ```
 ## Project Structure
 
