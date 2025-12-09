@@ -5,20 +5,21 @@
 This project is a command-line tool for tracking personal income and expenses.  
 The goal is to be able to import transactions from bank statements, categorize them automatically, set budgets, and generate insightful reports — all from the terminal.
 
-At this checkpoint, the architecture is finalized and basic functionality is implemented (add/search/report using a SQLite database).
-
+This is the full implementation delivered for the ATAD course project.
 ---
 
 ## User Stories
 
-| Feature / User Story                                            | Status | Notes |
-|-----------------------------------------------------------------|--------|-------|
-| As a user, I can import transactions from CSV/OFX files         | ❌     | planned for next iterations |
-| As a user, I can manually add income and expenses               | ✅     | `pfcli add` inserts into SQLite |
-| As a user, I can categorize transactions automatically          | ❌     | will be based on regex rules |
-| As a user, I can set budgets per category and get alerts        | ❌     | CLI stub exists (`pfcli budget`) |
-| As a user, I can generate reports (monthly spending, breakdown) | ⚠️     | basic summary via `pfcli report` |
-| As a user, I can search and filter transactions                 | ✅     | simple text search via `pfcli search` |
+| User Story                                                     | Status | Notes |
+|---------------------------------------------------------------|--------|-------|
+| Import transactions from CSV files                            | ✅     | `pfcli import --file file.csv` |
+| Import transactions from OFX files                            | ✅     | OFX parser implemented |
+| Manually add income/expenses                                  | ✅     | `pfcli add` |
+| Automatically categorize transactions                         | ✅     | Regex rules via `pfcli rules add` |
+| Set budgets per category & receive alerts                     | ✅     | Visible in `pfcli report --by-category` |
+| Generate reports (monthly spending, category breakdown)       | ✅     | ASCII bar charts + color |
+| Search & filter transactions                                  | ✅     | `pfcli search --text <query>` |
+| Interactive TUI for browsing                                  | ✅     | `pfcli tui` |
 
 ---
 
@@ -28,14 +29,18 @@ The main CLI entrypoint is `pfcli`.
 
 ### Available commands
 
-| Command                                   | Description |
-|-------------------------------------------|-------------|
-| `pfcli add`                               | Add a transaction manually (income or expense) |
-| `pfcli search --text <query>`             | Search transactions by text in the description |
-| `pfcli report`                            | Show a simple summary: total income, expense, balance |
-| `pfcli import`                            | Stub: will import transactions from CSV/OFX files |
-| `pfcli budget`                            | Stub: will manage budgets and alerts per category |
-| `pfcli tui`                               | Stub: will start an interactive terminal UI |
+| Command | Description |
+|--------|-------------|
+| `pfcli add`                                           | Add an income or expense manually |
+| `pfcli search --text <query>`                         | Search transactions by description |
+| `pfcli report`                                        | Show total income, expenses, balance |
+| `pfcli report --by-category`                          | Show category totals + ASCII charts + budget alerts |
+| `pfcli import --file <csv|ofx>`                       | Import transactions from CSV or OFX |
+| `pfcli rules add --pattern <regex> --category <cat>`  | Add auto-categorization rule |
+| `pfcli rules list`                                    | List categorization rules |
+| `pfcli budget add --category <cat> --limit <amount>`  | Add a budget limit for a category |
+| `pfcli budget list`                                   | List budgets |
+| `pfcli tui`                                           | Show a basic interactive terminal UI |
 
 ---
 
@@ -118,14 +123,12 @@ Framework: Cobra
 
 ### 🟩 2. Service Layer (future work)
 
-Will handle:
-
 categorization rules
 
 budgets & alerts
 
 business logic
-(Currently empty by design)
+
 
 ### 🟧 3. Repository Layer (internal/repo)
 
@@ -136,6 +139,10 @@ Insert()
 SearchByText()
 
 Totals()
+
+Budgets()
+
+Rules()
 
 Keeps SQL logic isolated from CLI.
 
@@ -162,19 +169,18 @@ TransactionTypeIncome
 TransactionTypeExpense
 
 
-## Notes (Checkpoint)
+## 📝 Notes (Checkpoint)
 
-System architecture is designed and fixed (folders, layers, responsibilities).
+✔ Architecture fully defined
+✔ All core features implemented
+✔ All commands functional
+✔ CSV and OFX import
+✔ Regex-based categorization
+✔ Budgets + alerts
+✔ ASCII charts in reports
+✔ Interactive TUI implemented
 
-Basic functionality is implemented and working:
-
-add (write to SQLite)
-
-search (read & filter)
-
-report (aggregate totals)
-
-Stub commands (import, budget, tui) exist to match project requirements and will be implemented in next iterations.
+The project is ready for final presentation.
 
 
 ## 🚀 Running the Project
