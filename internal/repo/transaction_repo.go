@@ -112,3 +112,28 @@ func (r *TransactionRepo) TotalsByCategory(t domain.TransactionType) ([]domain.C
 	}
 	return result, rows.Err()
 }
+
+func (r *TransactionRepo) LastN(n int) ([]domain.Transaction, error) {
+	rows, err := r.db.Query(`
+        SELECT id, date, description, amount, category, type
+        FROM transactions
+        ORDER BY date DESC, id DESC
+        LIMIT ?`, n)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []domain.Transaction
+	for rows.Next() {
+		var t domain.Transaction
+		var dateStr, typeStr string
+		if err := rows.Scan(&t.ID, &dateStr, &t.Description, &t.Amount, &t.Category, &typeStr); err != nil {
+			return nil, err
+		}
+		t.Date, _ = time.Parse("2006-01-02", dateStr)
+		t.Type = domain.TransactionType(typeStr)
+		result = append(result, t)
+	}
+	return result, rows.Err()
+}
