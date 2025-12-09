@@ -17,3 +17,8 @@ type Transaction struct {
 	Category    string
 	Type        TransactionType
 }
+
+type CategoryTotal struct {
+	Category string
+	Total    float64
+}

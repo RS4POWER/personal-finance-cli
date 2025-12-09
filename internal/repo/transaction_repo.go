@@ -88,3 +88,27 @@ func (r *TransactionRepo) Totals() (income, expense float64, err error) {
 
 	return income, expense, rows.Err()
 }
+
+func (r *TransactionRepo) TotalsByCategory(t domain.TransactionType) ([]domain.CategoryTotal, error) {
+	rows, err := r.db.Query(`
+        SELECT COALESCE(category, ''), SUM(amount)
+        FROM transactions
+        WHERE type = ?
+        GROUP BY category
+        ORDER BY SUM(amount) DESC
+    `, string(t))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []domain.CategoryTotal
+	for rows.Next() {
+		var c domain.CategoryTotal
+		if err := rows.Scan(&c.Category, &c.Total); err != nil {
+			return nil, err
+		}
+		result = append(result, c)
+	}
+	return result, rows.Err()
+}
