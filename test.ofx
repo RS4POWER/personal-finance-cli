@@ -1,0 +1,20 @@
+<OFX>
+  <BANKMSGSRSV1>
+    <STMTTRNRS>
+      <STMTRS>
+        <BANKTRANLIST>
+          <STMTTRN>
+            <DTPOSTED>20251113000000
+            <TRNAMT>-45.67
+            <MEMO>Grocery Store</MEMO>
+          </STMTTRN>
+          <STMTTRN>
+            <DTPOSTED>20251114000000
+            <TRNAMT>2500.00
+            <MEMO>Salary</MEMO>
+          </STMTTRN>
+        </BANKTRANLIST>
+      </STMTRS>
+    </STMTTRNRS>
+  </BANKMSGSRSV1>
+</OFX>

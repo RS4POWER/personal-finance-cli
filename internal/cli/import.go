@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/RS4POWER/personal-finance-cli/internal/db"
 	"github.com/RS4POWER/personal-finance-cli/internal/domain"
 	"github.com/RS4POWER/personal-finance-cli/internal/repo"
+	"github.com/RS4POWER/personal-finance-cli/internal/service"
 )
 
 var importFile string
@@ -20,27 +22,47 @@ var importFile string
 func init() {
 	importCmd := &cobra.Command{
 		Use:   "import",
-		Short: "Import transactions from a CSV file",
-		Long: `Import transactions from a CSV file into the local SQLite database.
+		Short: "Import transactions from a CSV or OFX file",
+		Long: `Import transactions from a CSV or OFX file into the local SQLite database.
 
-Expected CSV header (case-insensitive):
+CSV expected header (case-insensitive):
   date, description, amount, category, type
 
-- date:        YYYY-MM-DD (if empty, today is used)
-- amount:      numeric
-- type:        income|expense (defaults to expense if empty)
-- category:    free text (optional)`,
+OFX:
+  Basic support for <STMTTRN> blocks with DTPOSTED, TRNAMT, MEMO.`,
 		RunE: runImport,
 	}
 
-	importCmd.Flags().StringVarP(&importFile, "file", "f", "", "Path to CSV file")
+	importCmd.Flags().StringVarP(&importFile, "file", "f", "", "Path to CSV or OFX file")
 	_ = importCmd.MarkFlagRequired("file")
 
 	rootCmd.AddCommand(importCmd)
 }
 
 func runImport(cmd *cobra.Command, args []string) error {
-	f, err := os.Open(importFile)
+	ext := strings.ToLower(filepath.Ext(importFile))
+
+	database, err := db.Open("finance.db")
+	if err != nil {
+		return fmt.Errorf("open db: %w", err)
+	}
+	defer database.Close()
+
+	trRepo := repo.NewTransactionRepo(database)
+	ruleRepo := repo.NewRuleRepo(database)
+
+	switch ext {
+	case ".csv":
+		return importCSV(importFile, trRepo, ruleRepo)
+	case ".ofx":
+		return importOFX(importFile, trRepo, ruleRepo)
+	default:
+		return fmt.Errorf("unsupported file extension: %s (use .csv or .ofx)", ext)
+	}
+}
+
+func importCSV(path string, trRepo *repo.TransactionRepo, ruleRepo *repo.RuleRepo) error {
+	f, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("open file: %w", err)
 	}
@@ -48,11 +70,20 @@ func runImport(cmd *cobra.Command, args []string) error {
 
 	reader := csv.NewReader(f)
 	reader.TrimLeadingSpace = true
+	// for regional settings where ; is used as separator
+	reader.Comma = ';'
 
 	// Read header
 	header, err := reader.Read()
 	if err != nil {
 		return fmt.Errorf("read header: %w", err)
+	}
+
+	// If the whole header is in one cell like "date,description,...", split manually.
+	if len(header) == 1 && strings.Contains(header[0], ",") {
+		raw := strings.TrimSpace(header[0])
+		raw = strings.Trim(raw, "\"")
+		header = strings.Split(raw, ",")
 	}
 
 	// Map column name -> index (lowercased)
@@ -62,7 +93,7 @@ func runImport(cmd *cobra.Command, args []string) error {
 		colIndex[name] = i
 	}
 
-	// At minimum we need: description, amount
+	// Required: description, amount
 	descIdx, ok := colIndex["description"]
 	if !ok {
 		return fmt.Errorf("CSV must contain a 'description' column")
@@ -72,22 +103,12 @@ func runImport(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("CSV must contain an 'amount' column")
 	}
 
-	// Optional columns
+	// Optional
 	dateIdx, hasDate := colIndex["date"]
 	categoryIdx, hasCategory := colIndex["category"]
 	typeIdx, hasType := colIndex["type"]
 
-	database, err := db.Open("finance.db")
-	if err != nil {
-		return fmt.Errorf("open db: %w", err)
-	}
-	defer database.Close()
-
-	r := repo.NewTransactionRepo(database)
-	ruleRepo := repo.NewRuleRepo(database)
-
-	var imported int
-	var failed int
+	var imported, failed int
 
 	for {
 		record, err := reader.Read()
@@ -98,14 +119,12 @@ func runImport(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("read row: %w", err)
 		}
 
-		// Description
 		description := strings.TrimSpace(record[descIdx])
 		if description == "" {
 			failed++
 			continue
 		}
 
-		// Amount
 		amountStr := strings.TrimSpace(record[amountIdx])
 		amount, err := strconv.ParseFloat(amountStr, 64)
 		if err != nil {
@@ -138,7 +157,8 @@ func runImport(cmd *cobra.Command, args []string) error {
 		if hasCategory {
 			category = strings.TrimSpace(record[categoryIdx])
 		}
-		// If category is empty, try rules
+
+		// If category empty, try rules
 		if category == "" {
 			if cat, err := ruleRepo.FindCategory(description); err == nil && cat != "" {
 				category = cat
@@ -162,7 +182,7 @@ func runImport(cmd *cobra.Command, args []string) error {
 			Type:        tType,
 		}
 
-		if err := r.Insert(tx); err != nil {
+		if err := trRepo.Insert(tx); err != nil {
 			fmt.Printf("Failed to insert transaction '%s': %v\n", description, err)
 			failed++
 			continue
@@ -171,6 +191,42 @@ func runImport(cmd *cobra.Command, args []string) error {
 		imported++
 	}
 
-	fmt.Printf("Import finished. Imported: %d, Skipped: %d\n", imported, failed)
+	fmt.Printf("CSV import finished. Imported: %d, Skipped: %d\n", imported, failed)
+	return nil
+}
+
+func importOFX(path string, trRepo *repo.TransactionRepo, ruleRepo *repo.RuleRepo) error {
+	txs, err := service.ParseOFX(path)
+	if err != nil {
+		return fmt.Errorf("parse OFX: %w", err)
+	}
+
+	if len(txs) == 0 {
+		fmt.Println("No transactions found in OFX file.")
+		return nil
+	}
+
+	var imported, failed int
+
+	for i := range txs {
+		tx := &txs[i]
+
+		// try auto category via rules if empty
+		if tx.Category == "" {
+			if cat, err := ruleRepo.FindCategory(tx.Description); err == nil && cat != "" {
+				tx.Category = cat
+			}
+		}
+
+		if err := trRepo.Insert(tx); err != nil {
+			fmt.Printf("Failed to insert OFX transaction '%s': %v\n", tx.Description, err)
+			failed++
+			continue
+		}
+
+		imported++
+	}
+
+	fmt.Printf("OFX import finished. Imported: %d, Skipped: %d\n", imported, failed)
 	return nil
 }
