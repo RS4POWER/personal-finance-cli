@@ -35,7 +35,7 @@ The main CLI entrypoint is `pfcli`.
 | `pfcli search --text <query>`                         | Search transactions by description |
 | `pfcli report`                                        | Show total income, expenses, balance |
 | `pfcli report --by-category`                          | Show category totals + ASCII charts + budget alerts |
-| `pfcli import --file <csv|ofx>`                       | Import transactions from CSV or OFX |
+| `pfcli import --file <csv/ofx>`                       | Import transactions from CSV or OFX |
 | `pfcli rules add --pattern <regex> --category <cat>`  | Add auto-categorization rule |
 | `pfcli rules list`                                    | List categorization rules |
 | `pfcli budget add --category <cat> --limit <amount>`  | Add a budget limit for a category |
