@@ -60,6 +60,14 @@ func runAdd(cmd *cobra.Command, args []string) error {
 
 	r := repo.NewTransactionRepo(database)
 
+	// If no category provided, try to auto-categorize using regex rules.
+	if addCategory == "" {
+		ruleRepo := repo.NewRuleRepo(database)
+		if cat, err := ruleRepo.FindCategory(addDescription); err == nil && cat != "" {
+			addCategory = cat
+		}
+	}
+
 	tx := &domain.Transaction{
 		Date:        parsedDate,
 		Description: addDescription,

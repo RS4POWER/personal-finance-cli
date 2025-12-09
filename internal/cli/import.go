@@ -84,6 +84,7 @@ func runImport(cmd *cobra.Command, args []string) error {
 	defer database.Close()
 
 	r := repo.NewTransactionRepo(database)
+	ruleRepo := repo.NewRuleRepo(database)
 
 	var imported int
 	var failed int
@@ -136,6 +137,12 @@ func runImport(cmd *cobra.Command, args []string) error {
 		category := ""
 		if hasCategory {
 			category = strings.TrimSpace(record[categoryIdx])
+		}
+		// If category is empty, try rules
+		if category == "" {
+			if cat, err := ruleRepo.FindCategory(description); err == nil && cat != "" {
+				category = cat
+			}
 		}
 
 		// Type
