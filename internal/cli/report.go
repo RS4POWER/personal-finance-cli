@@ -69,22 +69,61 @@ func runReport(cmd *cobra.Command, args []string) error {
 			budgetMap[b.Category] = b.Limit
 		}
 
+		// find maximum total for scaling the ASCII bar
+		max := 0.0
+		for _, c := range cats {
+			if c.Total > max {
+				max = c.Total
+			}
+		}
+
+		const barMax = 25 // length of the bar
+
+		// ANSI colors for the bar
+		red := "\033[31m"
+		green := "\033[32m"
+		yellow := "\033[33m"
+		reset := "\033[0m"
+
 		for _, c := range cats {
 			category := c.Category
 			if category == "" {
 				category = "(uncategorized)"
 			}
 
-			limit, hasBudget := budgetMap[category]
-			if hasBudget {
-				status := "OK"
-				if c.Total > limit {
-					status = "OVER"
-				}
-				fmt.Printf("  %-15s %.2f / %.2f (%s)\n", category, c.Total, limit, status)
-			} else {
-				fmt.Printf("  %-15s %.2f\n", category, c.Total)
+			// scale bar length
+			barLen := int((c.Total / max) * barMax)
+			if barLen < 2 {
+				barLen = 2 // always at least visible
 			}
+
+			bar := ""
+			for i := 0; i < barLen; i++ {
+				bar += "█"
+			}
+
+			// default: no budget -> yellow bar, empty status
+			statusText := ""
+			color := yellow
+
+			if limit, ok := budgetMap[category]; ok {
+				// there's a budget for this category
+				if c.Total > limit {
+					statusText = fmt.Sprintf("/ %.2f (OVER)", limit)
+					color = red
+				} else {
+					statusText = fmt.Sprintf("/ %.2f (OK)", limit)
+					color = green
+				}
+			}
+
+			// left side: category, total, status text (no color, fixed width)
+			left := fmt.Sprintf("  %-12s %-8.2f %-20s", category, c.Total, statusText)
+
+			// colored bar
+			coloredBar := color + bar + reset
+
+			fmt.Printf("%s %s\n", left, coloredBar)
 		}
 	}
 
