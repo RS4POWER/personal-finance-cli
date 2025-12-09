@@ -58,12 +58,33 @@ func runReport(cmd *cobra.Command, args []string) error {
 			return nil
 		}
 
+		// Load budgets
+		budgetRepo := repo.NewBudgetRepo(database)
+		budgets, err := budgetRepo.List()
+		if err != nil {
+			return err
+		}
+		budgetMap := make(map[string]float64)
+		for _, b := range budgets {
+			budgetMap[b.Category] = b.Limit
+		}
+
 		for _, c := range cats {
 			category := c.Category
 			if category == "" {
 				category = "(uncategorized)"
 			}
-			fmt.Printf("  %-15s %.2f\n", category, c.Total)
+
+			limit, hasBudget := budgetMap[category]
+			if hasBudget {
+				status := "OK"
+				if c.Total > limit {
+					status = "OVER"
+				}
+				fmt.Printf("  %-15s %.2f / %.2f (%s)\n", category, c.Total, limit, status)
+			} else {
+				fmt.Printf("  %-15s %.2f\n", category, c.Total)
+			}
 		}
 	}
 
