@@ -3,7 +3,7 @@
 ## Description
 
 This project is a command-line tool for tracking personal income and expenses.  
-The goal is to be able to import transactions from bank statements, categorize them automatically, set budgets, and generate insightful reports — all from the terminal.
+The goal is to be able to import transactions from bank statements, categorize them automatically, set budgets, and generate insightful reports; all from the terminal.
 
 This is the full implementation delivered for the ATAD course project.
 ---
