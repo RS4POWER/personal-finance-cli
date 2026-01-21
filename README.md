@@ -185,6 +185,21 @@ The project is ready for final presentation.
 
 ## 🚀 Running the Project
 
+###Prerequisites
+
+Before running the project, make sure you have Go (Golang) installed on your system.
+
+Required Go version: Go 1.20 or newer
+
+Download Go from the official website:
+https://go.dev/dl/
+
+After installing Go, verify that it is correctly installed by running in CMD:
+go version
+
+### Download Dependencies:
+go mod tidy
+
 ### Clone repository:
 
 git clone https://github.com/RS4POWER/personal-finance-cli
